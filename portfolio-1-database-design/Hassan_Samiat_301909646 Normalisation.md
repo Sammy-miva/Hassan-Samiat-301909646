@@ -26,7 +26,7 @@ Fix: these details were moved out into their own tables:
  `branches` (branch name, city)
 `accounts` (links a customer and a branch to an account number)
 
-##Third Normal Form (3NF): details describe only the row they sit in
+## Third Normal Form (3NF): details describe only the row they sit in
 Rule: a detail must describe the row's own key, not another detail.
 In the big table, `type_name` describes the transaction type, not the transaction. Also, in `accounts`, the customer's name would depend on `customer_id` rather than on the account.
 Fix:
