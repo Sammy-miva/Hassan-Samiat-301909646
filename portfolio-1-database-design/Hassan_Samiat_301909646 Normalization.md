@@ -52,3 +52,4 @@ One deliberate exception is the balance column in the accounts table. The balanc
 To keep it safe, every balance change is written to `audit_log`, so auditors can compare the stored balance with the transactions.
 
 
+
