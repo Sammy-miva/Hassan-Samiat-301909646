@@ -106,11 +106,3 @@ No linking table is needed because every account has only one owner. A transfer 
 ![Tables list](table-list.png)
 
 This shows the six SamyPay tables after running schema.sql
-
-### Accounts table structure
-
-![Accounts structure](evidence 2.png)
-
-![Accounts structure](account structure 2.png)
-
-This shows the columns, primary key, unique, check and foreign-key constraints on the accounts table
