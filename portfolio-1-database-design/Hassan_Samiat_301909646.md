@@ -99,3 +99,18 @@ No linking table is needed because every account has only one owner. A transfer 
 1. Each account has one owner only (no joint accounts).
 2. All amounts are in Naira, so there is no currency column.
 3. Deposits have no sender and withdrawals have no receiver, so those two columns can be empty.
+## Evidence
+
+### Tables created in PostgreSQL
+
+![Tables list](table-list.png)
+
+This shows the six SamyPay tables after running schema.sql
+
+### Accounts table structure
+
+![Accounts structure](account structure.png)
+
+![Accounts structure](account structure 2.png)
+
+This shows the columns, primary key, unique, check and foreign-key constraints on the accounts table
