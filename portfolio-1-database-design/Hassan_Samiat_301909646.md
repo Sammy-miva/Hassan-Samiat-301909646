@@ -109,8 +109,8 @@ This shows the six SamyPay tables after running schema.sql
 
 ### Accounts table structure
 
-![Accounts structure](evidence 2.png)
+![Accounts structure]('evidence 2.png')
 
-![Accounts structure](account structure 2.png)
+![Accounts structure]('account structure 2.png')
 
 This shows the columns, primary key, unique, check and foreign-key constraints on the accounts table
