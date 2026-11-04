@@ -109,7 +109,7 @@ This shows the six SamyPay tables after running schema.sql
 
 ### Accounts table structure
 
-![Accounts structure](account structure.png)
+![Accounts structure](evidence 2.png)
 
 ![Accounts structure](account structure 2.png)
 
