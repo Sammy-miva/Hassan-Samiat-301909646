@@ -50,3 +50,14 @@ The counts match the numbers in the table above.
 one issue i had when running it for thefirst time, the script ran
 twice and the transactions table showed 200,000 rows. I emptied the tables
 with TRUNCATE and ran the script once to get the correct counts.
+
+## Step 2: Queries
+| Query | What it answers | Tables used |
+|---|---|---|
+| 1 | Transaction history of one account | transactions, transaction_types |
+| 2 | Monthly totals of successful transactions | transactions |
+| 3 | Top 10 customers by total balance | customers, accounts |
+| 4 | Failed transactions per branch (last 90 days) | transactions, accounts, branches |
+| 5 | Largest transfers with sender and receiver | transactions, transaction_types, accounts |
+
+The queries are in `samypayqueries.sql` and the results are in `query-results.txt`.
