@@ -1,0 +1,9 @@
+=== Query 1 plan (before indexing) ===
+         ->  Seq Scan on transactions t  (cost=0.00..2381.00 rows=19 width=31) (actual time=0.120..6.827 rows=18 loops=1)
+ Execution Time: 6.944 ms
+=== Query 4 plan (before indexing) ===
+                     ->  Seq Scan on transactions t  (cost=0.00..2881.00 rows=1208 width=8) (actual time=0.005..7.450 rows=1179 loops=1)
+ Execution Time: 9.689 ms
+=== Query 5 plan (before indexing) ===
+                           ->  Seq Scan on transactions t  (cost=0.00..2131.00 rows=9859 width=32) (actual time=0.005..13.878 rows=9879 loops=1)
+ Execution Time: 22.412 ms

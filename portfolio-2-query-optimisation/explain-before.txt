@@ -1,0 +1,75 @@
+=== Query 1 plan (before indexing) ===
+                                                           QUERY PLAN                                                            
+---------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=2383.41..2383.46 rows=19 width=36) (actual time=6.888..6.890 rows=18 loops=1)
+   Sort Key: t.created_at DESC
+   Sort Method: quicksort  Memory: 26kB
+   ->  Nested Loop  (cost=0.00..2383.01 rows=19 width=36) (actual time=0.130..6.850 rows=18 loops=1)
+         Join Filter: (tt.type_id = t.type_id)
+         Rows Removed by Join Filter: 30
+         ->  Seq Scan on transactions t  (cost=0.00..2381.00 rows=19 width=31) (actual time=0.120..6.827 rows=18 loops=1)
+               Filter: ((from_account_id = 500) OR (to_account_id = 500))
+               Rows Removed by Filter: 99982
+         ->  Materialize  (cost=0.00..1.06 rows=4 width=13) (actual time=0.000..0.001 rows=3 loops=18)
+               ->  Seq Scan on transaction_types tt  (cost=0.00..1.04 rows=4 width=13) (actual time=0.002..0.003 rows=3 loops=1)
+ Planning Time: 0.549 ms
+ Execution Time: 6.944 ms
+(13 rows)
+
+=== Query 4 plan (before indexing) ===
+                                                                QUERY PLAN                                                                
+------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=3159.44..3159.46 rows=8 width=23) (actual time=9.620..9.624 rows=8 loops=1)
+   Sort Key: (count(*)) DESC
+   Sort Method: quicksort  Memory: 25kB
+   ->  HashAggregate  (cost=3159.24..3159.32 rows=8 width=23) (actual time=9.596..9.600 rows=8 loops=1)
+         Group Key: b.branch_name
+         Batches: 1  Memory Usage: 24kB
+         ->  Hash Join  (cost=264.18..3153.20 rows=1208 width=15) (actual time=1.597..9.424 rows=1179 loops=1)
+               Hash Cond: (a.branch_id = b.branch_id)
+               ->  Hash Join  (cost=263.00..3147.17 rows=1208 width=4) (actual time=1.569..9.259 rows=1179 loops=1)
+                     Hash Cond: (COALESCE(t.from_account_id, t.to_account_id) = a.account_id)
+                     ->  Seq Scan on transactions t  (cost=0.00..2881.00 rows=1208 width=8) (actual time=0.005..7.450 rows=1179 loops=1)
+                           Filter: (((status)::text = 'FAILED'::text) AND (created_at >= (now() - '90 days'::interval)))
+                           Rows Removed by Filter: 98821
+                     ->  Hash  (cost=163.00..163.00 rows=8000 width=8) (actual time=1.528..1.529 rows=8000 loops=1)
+                           Buckets: 8192  Batches: 1  Memory Usage: 377kB
+                           ->  Seq Scan on accounts a  (cost=0.00..163.00 rows=8000 width=8) (actual time=0.003..0.668 rows=8000 loops=1)
+               ->  Hash  (cost=1.08..1.08 rows=8 width=19) (actual time=0.016..0.017 rows=8 loops=1)
+                     Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                     ->  Seq Scan on branches b  (cost=0.00..1.08 rows=8 width=19) (actual time=0.004..0.005 rows=8 loops=1)
+ Planning Time: 0.287 ms
+ Execution Time: 9.689 ms
+(21 rows)
+
+=== Query 5 plan (before indexing) ===
+                                                                    QUERY PLAN                                                                    
+--------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=2789.90..2789.95 rows=20 width=42) (actual time=22.371..22.377 rows=20 loops=1)
+   ->  Sort  (cost=2789.90..2796.06 rows=2465 width=42) (actual time=22.369..22.373 rows=20 loops=1)
+         Sort Key: t.amount DESC
+         Sort Method: top-N heapsort  Memory: 27kB
+         ->  Hash Join  (cost=527.06..2724.31 rows=2465 width=42) (actual time=3.469..20.331 rows=5014 loops=1)
+               Hash Cond: (t.to_account_id = ta.account_id)
+               ->  Hash Join  (cost=264.06..2454.84 rows=2465 width=35) (actual time=1.824..17.698 rows=5014 loops=1)
+                     Hash Cond: (t.from_account_id = fa.account_id)
+                     ->  Hash Join  (cost=1.06..2185.37 rows=2465 width=28) (actual time=0.019..14.878 rows=5014 loops=1)
+                           Hash Cond: (t.type_id = tt.type_id)
+                           ->  Seq Scan on transactions t  (cost=0.00..2131.00 rows=9859 width=32) (actual time=0.005..13.878 rows=9879 loops=1)
+                                 Filter: (amount > '450000'::numeric)
+                                 Rows Removed by Filter: 90121
+                           ->  Hash  (cost=1.05..1.05 rows=1 width=4) (actual time=0.005..0.006 rows=1 loops=1)
+                                 Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                 ->  Seq Scan on transaction_types tt  (cost=0.00..1.05 rows=1 width=4) (actual time=0.003..0.003 rows=1 loops=1)
+                                       Filter: ((type_name)::text = 'TRANSFER'::text)
+                                       Rows Removed by Filter: 3
+                     ->  Hash  (cost=163.00..163.00 rows=8000 width=15) (actual time=1.759..1.760 rows=8000 loops=1)
+                           Buckets: 8192  Batches: 1  Memory Usage: 439kB
+                           ->  Seq Scan on accounts fa  (cost=0.00..163.00 rows=8000 width=15) (actual time=0.002..0.538 rows=8000 loops=1)
+               ->  Hash  (cost=163.00..163.00 rows=8000 width=15) (actual time=1.639..1.640 rows=8000 loops=1)
+                     Buckets: 8192  Batches: 1  Memory Usage: 439kB
+                     ->  Seq Scan on accounts ta  (cost=0.00..163.00 rows=8000 width=15) (actual time=0.003..0.561 rows=8000 loops=1)
+ Planning Time: 0.331 ms
+ Execution Time: 22.412 ms
+(26 rows)
+
