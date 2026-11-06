@@ -112,8 +112,52 @@ balance instead of an old one.
 | Withdrawals approved | 2 | 1 |
 | Final balance | 20,000 (one withdrawal lost) | 20,000 (correct) |
 
-### Part 3: isolation level
-[To be added: SERIALIZABLE isolation level and what happened.]
+
+### Part 3: isolation level (SERIALIZABLE)
+In Parts 1 and 2 the sessions used PostgreSQL's default isolation level,
+READ COMMITTED. For Part 3 I repeated the clash from Part 1, but both sessions
+started with `BEGIN ISOLATION LEVEL SERIALIZABLE`. The account balance was reset
+to 100,000 first.
+
+Both sessions read the balance and saw 100,000. Session A then wrote 20,000 and
+committed. When Session B tried to write 20,000 on top of it, PostgreSQL
+stopped it with this error:
+
+`ERROR: could not serialize access due to concurrent update`
+
+I ended Session B's transaction with `ROLLBACK`. The final balance was 20,000,
+and the second withdrawal never took place.
+
+**Why it happened:** at this isolation level, a transaction works from a fixed
+snapshot of the data taken when it starts. Session A changed the row after
+Session B took its snapshot, so Session B's information was out of date.
+PostgreSQL refuses to let a transaction write over a change it never saw,
+instead of silently overwriting it as happened in Part 1.
+
+**What the application must do:** the error is not a fault in the database.
+It means the transaction has to be tried again. On a retry, Session B would
+read the current balance of 20,000 and see that there is not enough money for
+an 80,000 withdrawal.
+
+![Part 3: serialization error](part3-serializable-error.png)
+
+### Comparison of the three approaches
+| | Part 1 (READ COMMITTED, no lock) | Part 2 (FOR UPDATE) | Part 3 (SERIALIZABLE) |
+|---|---|---|---|
+| What happened to Session B | Went ahead with an old balance | Waited for Session A to finish | Received an error after Session A committed |
+| Withdrawals approved | 2 | 1 | 1 |
+| Final balance | 20,000 (one withdrawal lost) | 20,000 (correct) | 20,000 (correct) |
+| Who handles the conflict | Nobody, so the data was wrong | The database, by making B wait | The application, by retrying |
+| Main cost | Wrong balances | Waiting time | Retry logic needed |
+
+### Conclusion
+Isolation levels and locks protect the data in different ways. Locking
+(`FOR UPDATE`) stops a conflict from happening by making one session wait.
+SERIALIZABLE lets the sessions run together and stops the one whose
+information is out of date. For SamyPay, locking the sender's account at the
+start of each transfer is the simpler choice for everyday transfers.
+SERIALIZABLE is useful for operations that read several rows and make
+decisions from them, as long as the application retries after an error.
 
 ### What I learned
 - A transaction on its own does not stop two users reading the same old
