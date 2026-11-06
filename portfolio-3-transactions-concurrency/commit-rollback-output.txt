@@ -1,0 +1,49 @@
+=== Balances before ===
+ account_number |  balance  
+----------------+-----------
+ 9000000001     | 100000.00
+ 9000000002     |  50000.00
+(2 rows)
+
+=== Demo 1: successful transfer of 30,000 (COMMIT) ===
+BEGIN
+UPDATE 1
+UPDATE 1
+INSERT 0 1
+COMMIT
+=== After COMMIT: expect 70000 and 80000 ===
+ account_number | balance  
+----------------+----------
+ 9000000001     | 70000.00
+ 9000000002     | 80000.00
+(2 rows)
+
+=== Demo 2: transfer of 500,000 from an account holding 70,000 (fails, ROLLBACK) ===
+BEGIN
+UPDATE 1
+psql:portfolio-3-transactions-concurrency/samypaycommit-rollback.sql:23: ERROR:  new row for relation "accounts" violates check constraint "accounts_balance_check"
+DETAIL:  Failing row contains (8001, 9000000001, 5001, 1, SAVINGS, -430000.00, ACTIVE, 2026-11-06 02:17:59.15476).
+ROLLBACK
+=== After failed transfer: expect 70000 and 80000 (unchanged) ===
+ account_number | balance  
+----------------+----------
+ 9000000001     | 70000.00
+ 9000000002     | 80000.00
+(2 rows)
+
+=== Demo 3: manual ROLLBACK ===
+BEGIN
+UPDATE 1
+Inside the transaction (expect 60000):
+ account_number | balance  
+----------------+----------
+ 9000000001     | 60000.00
+(1 row)
+
+ROLLBACK
+After ROLLBACK (expect 70000):
+ account_number | balance  
+----------------+----------
+ 9000000001     | 70000.00
+(1 row)
+
