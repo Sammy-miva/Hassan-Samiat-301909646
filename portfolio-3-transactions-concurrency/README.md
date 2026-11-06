@@ -56,9 +56,6 @@ until `COMMIT`, and `ROLLBACK` discards them.
 | Demo 3 inside the transaction | 60,000 | not changed |
 | Demo 3 after ROLLBACK | 70,000 | 80,000 |
 
-## Concurrency and isolation
-[To be added: the concurrency problem, how it was controlled, and the
-isolation level used.]
 
 ## Limitations
 - The failed transfer in Demonstration 2 was caught by the CHECK rule on
@@ -69,11 +66,65 @@ isolation level used.]
 - Running `samypaycommit-rollback.sql` again gives different starting balances,
   because the successful transfer is saved permanently each time.
 
+  ## Concurrency and isolation
+
+Concurrency means two people using the database at the same moment. The classic bank problem is a lost update: two withdrawals each check the balance, both see enough money, and both go through, so the bank pays out more than the account held.Concurrency means two users working on the same account at the same time. A bank has to make sure this never produces a wrong balance. I tested this with two terminals connected to the `samypay` database (Terminal A and Terminal B),
+using the demo account 9000000001 with a starting balance of 100,000. I typed
+the steps by hand in a fixed order, and the steps are saved in
+`samypayconcurrency-demo.sql`
+
+### Part 1: the problem (lost update)
+Both sessions started a transaction and read the balance. Both saw 100,000,
+so both believed an 80,000 withdrawal was allowed. Session A then wrote a
+balance of 20,000 and committed. Session B, still working from the balance it
+had read earlier, also wrote 20,000 and committed.
+
+**Result:** the final balance was 20,000. Two withdrawals of 80,000 were
+approved (160,000 in total) from an account holding only 100,000, but the
+balance dropped by only 80,000, so one withdrawal was lost.
+
+**Why it happened:** both sessions read the balance before either of them
+wrote. The `CHECK (balance >= 0)` rule did not help, because 20,000 is a
+valid balance. The rule only checks the value being written, not whether it
+was calculated from out-of-date information.
+
+![Part 1: lost update](part1-lost-update.png)
+
+### Part 2: the fix (row locking with FOR UPDATE)
+This time both sessions used `SELECT ... FOR UPDATE`. Session A read the
+balance and locked the row. When Session B ran the same statement, it waited
+and did not return a result. After Session A withdrew 80,000 and committed,
+Session B immediately received the new balance of 20,000. That was not enough
+for another 80,000 withdrawal, so Session B ended with `ROLLBACK`.
+
+**Result:** the final balance was 20,000 and only one withdrawal took place,
+which is correct.
+
+**Why it works:** `FOR UPDATE` lets only one session hold the row at a time.
+The second session has to wait, so it makes its decision using the current
+balance instead of an old one.
+
+### Comparison
+| | Part 1 (no lock) | Part 2 (FOR UPDATE) |
+|---|---|---|
+| Session B read the balance | Immediately | After Session A finished |
+| Balance Session B saw | 100,000 (out of date) | 20,000 (current) |
+| Withdrawals approved | 2 | 1 |
+| Final balance | 20,000 (one withdrawal lost) | 20,000 (correct) |
+
+### Part 3: isolation level
+[To be added: SERIALIZABLE isolation level and what happened.]
+
+### What I learned
+- A transaction on its own does not stop two users reading the same old
+  balance. Concurrency needs a control, such as locking.
+- Locking is a cost as well as a protection. Session B had to wait, so a busy
+  account could slow users down.
+- In a real SamyPay system, the application would lock the sender's account at
+  the start of every transfer.
 ## Files in this folder
 - `samypaysetup.sql`: creates the demo customers and accounts
-- `samypaygit add .
-git commit -m "Add Portfolio 3 setup and commit-rollback demos"
-git pushcommit-rollback.sql`: the three demonstrations
+- `samypaycommit-rollback.sql`: the three demonstrations
 - `commit-rollback-output.txt`: the output of the demonstrations
 - `README.md`: this document
 - [more files will be listed as they are added]
