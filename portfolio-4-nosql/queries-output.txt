@@ -1,0 +1,179 @@
+--- Query 1: Find a customer by email ---
+{
+  firstName: 'Ade',
+  lastName: 'Bello',
+  email: 'ade.bello@samypay.test'
+}
+--- Query 2: Active accounts with balance above 100,000 ---
+{
+  customer: 'Mariam Adamu',
+  accountNumber: '4000000001',
+  balance: Decimal128('250000.00')
+}
+{
+  customer: 'Ade Bello',
+  accountNumber: '4000000003',
+  balance: Decimal128('500000.00')
+}
+{
+  customer: 'Ngozi Okafor',
+  accountNumber: '4000000004',
+  balance: Decimal128('120000.00')
+}
+{
+  customer: 'Ibrahim Musa',
+  accountNumber: '4000000006',
+  balance: Decimal128('900000.00')
+}
+--- Query 3: Latest 5 transactions for account 4000000001 ---
+{
+  _id: ObjectId('6af264dc24367d6db0788674'),
+  transactionId: 50,
+  type: 'WITHDRAWAL',
+  fromAccount: '4000000001',
+  toAccount: null,
+  amount: Decimal128('196378.00'),
+  status: 'FAILED',
+  createdAt: ISODate('2026-11-06T16:57:27.004Z')
+}
+{
+  _id: ObjectId('6af264dc24367d6db07886e1'),
+  transactionId: 159,
+  type: 'TRANSFER',
+  fromAccount: '4000000001',
+  toAccount: '4000000008',
+  amount: Decimal128('262286.00'),
+  status: 'SUCCESS',
+  createdAt: ISODate('2026-11-04T16:51:37.887Z')
+}
+{
+  _id: ObjectId('6af264dc24367d6db078868f'),
+  transactionId: 77,
+  type: 'TRANSFER',
+  fromAccount: '4000000004',
+  toAccount: '4000000001',
+  amount: Decimal128('290735.00'),
+  status: 'SUCCESS',
+  createdAt: ISODate('2026-11-02T05:23:12.793Z')
+}
+{
+  _id: ObjectId('6af264dc24367d6db0788644'),
+  transactionId: 2,
+  type: 'TRANSFER',
+  fromAccount: '4000000001',
+  toAccount: '4000000006',
+  amount: Decimal128('337713.00'),
+  status: 'SUCCESS',
+  createdAt: ISODate('2026-10-18T10:17:07.105Z')
+}
+{
+  _id: ObjectId('6af264dc24367d6db07886e9'),
+  transactionId: 167,
+  type: 'TRANSFER',
+  fromAccount: '4000000004',
+  toAccount: '4000000001',
+  amount: Decimal128('286198.00'),
+  status: 'SUCCESS',
+  createdAt: ISODate('2026-09-28T17:21:57.973Z')
+}
+--- Query 4: Monthly totals of successful transactions ---
+{
+  _id: '2025-11',
+  numberOfTransactions: 7,
+  totalAmount: Decimal128('1327992.00')
+}
+{
+  _id: '2025-12',
+  numberOfTransactions: 23,
+  totalAmount: Decimal128('5980742.00')
+}
+{
+  _id: '2026-01',
+  numberOfTransactions: 25,
+  totalAmount: Decimal128('6175279.00')
+}
+{
+  _id: '2026-02',
+  numberOfTransactions: 16,
+  totalAmount: Decimal128('4541794.00')
+}
+{
+  _id: '2026-03',
+  numberOfTransactions: 10,
+  totalAmount: Decimal128('2786919.00')
+}
+{
+  _id: '2026-04',
+  numberOfTransactions: 12,
+  totalAmount: Decimal128('3063071.00')
+}
+{
+  _id: '2026-05',
+  numberOfTransactions: 18,
+  totalAmount: Decimal128('6056364.00')
+}
+{
+  _id: '2026-06',
+  numberOfTransactions: 9,
+  totalAmount: Decimal128('2233995.00')
+}
+{
+  _id: '2026-07',
+  numberOfTransactions: 12,
+  totalAmount: Decimal128('3261334.00')
+}
+{
+  _id: '2026-08',
+  numberOfTransactions: 16,
+  totalAmount: Decimal128('4366345.00')
+}
+{
+  _id: '2026-09',
+  numberOfTransactions: 12,
+  totalAmount: Decimal128('3396653.00')
+}
+{
+  _id: '2026-10',
+  numberOfTransactions: 10,
+  totalAmount: Decimal128('2344527.00')
+}
+{
+  _id: '2026-11',
+  numberOfTransactions: 8,
+  totalAmount: Decimal128('2212608.00')
+}
+--- Query 5: Total balance per city ---
+{
+  _id: 'Kano',
+  numberOfAccounts: 1,
+  totalBalance: Decimal128('900000.00')
+}
+{
+  _id: 'Abuja',
+  numberOfAccounts: 1,
+  totalBalance: Decimal128('500000.00')
+}
+{
+  _id: 'Lagos',
+  numberOfAccounts: 2,
+  totalBalance: Decimal128('330000.00')
+}
+{
+  _id: 'Port Harcourt',
+  numberOfAccounts: 2,
+  totalBalance: Decimal128('165000.00')
+}
+{
+  _id: 'Enugu',
+  numberOfAccounts: 1,
+  totalBalance: Decimal128('65000.00')
+}
+{
+  _id: 'Ibadan',
+  numberOfAccounts: 1,
+  totalBalance: Decimal128('30000.00')
+}
+--- Query 6: Index check for account 4000000001 ---
+Documents examined: 16
+Documents returned: 16
+Winning plan: {"isCached":false,"stage":"FETCH","inputStage":{"stage":"IXSCAN","keyPattern":{"fromAccount":1,"createdAt":-1},"indexName":"fromAccount_1_createdAt_-1","isMultiKey":false,"multiKeyPaths":{"fromAccount":[],"createdAt":[]},"isUnique":false,"isSparse":false,"isPartial":false,"indexVersion":2,"direction":"forward","indexBounds":{"fromAccount":["[\"4000000001\", \"4000000001\"]"],"createdAt":["[MaxKey, MinKey]"]}}}
