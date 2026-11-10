@@ -88,12 +88,14 @@ No linking table is needed because every account has only one owner. A transfer 
 | 3 | Account numbers are unique | UNIQUE and NOT NULL on `account_number` |
 | 4 | Balance cannot go below zero | CHECK (balance >= 0) |
 | 5 | Transaction amount must be above zero | CHECK (amount > 0) |
-| 6 | Only active accounts can send or receive money | A key can't do this. The transfer code must check that both accounts have status ACTIVE before moving money |
-| 7 | A transfer is complete or it does not happen | A key can't do this. The debit, credit and transaction record are put in one transaction (BEGIN ... COMMIT) |
-| 8 | A failed transaction leaves balances unchanged | ROLLBACK, and the transaction is saved with status FAILED |
+| 6 | Only active accounts can send or receive money |A key can’t do this. The transfer_funds() function checks that both accounts have status ACTIVE before moving any money|
+| 7 | A transfer is complete or it does not happen | A key can’t do this. transfer_funds() does the debit, the credit and the transaction record inside one database transaction, so all three are saved or none are |
+| 8 | A failed transaction leaves balances unchanged | transfer_funds() runs all its checks before changing any balance. If a check fails, it saves the transfer with status FAILED and does not touch the balances. The ROLLBACK demonstrations in Portfolio 3 show the database undoing a partly finished transfer |
 | 9 | Every transaction records type, amount, status and date | NOT NULL on those columns |
-| 10 | Reversed transactions are marked, not deleted | A key can't do this. Delete permission is removed on `transactions`, and a reversal changes the status to REVERSED |
-| 11 | Every balance change is logged | A key can't do this. A trigger on `accounts` writes the old and new balance into `audit_log` |
+| 10 | Reversed transactions are marked, not deleted | A key can’t do this. The trigger trg_no_delete_transactions refuses any DELETE on the transactions table. REVERSED is an allowed status in the status CHECK|
+| 11 | Every balance change is logged |A key can’t do this. The trigger trg_audit_balance writes the old and new balance to audit_log whenever an account balance changes |
+
+These rules are built in portfolio-3-transactions-concurrency/procedures.sql, and the test results are in transfer-demo-output.txt.
 
 ## 5. Design Assumptions
 1. Each account has one owner only (no joint accounts).
@@ -106,3 +108,4 @@ No linking table is needed because every account has only one owner. A transfer 
 ![Tables list](table-list.png)
 
 This shows the six SamyPay tables after running schema.sql
+
