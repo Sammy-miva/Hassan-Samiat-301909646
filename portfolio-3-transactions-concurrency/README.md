@@ -56,15 +56,83 @@ until `COMMIT`, and `ROLLBACK` discards them.
 | Demo 3 inside the transaction | 60,000 | not changed |
 | Demo 3 after ROLLBACK | 70,000 | 80,000 |
 
+## Safe transfers: function and triggers
+The demonstrations above used hand-written SQL. To make the SamyPay business
+rules from Portfolio 1 hold every time, I built them into the database in
+`procedures.sql`. They are tested in `transfer-demo.sql`, and the output is in
+`transfer-demo-output.txt`.
+
+### What was built
+| Object | Type | What it does | Rules |
+|---|---|---|---|
+| `transfer_funds()` | Function | Validates a transfer, then moves the money in one all-or-nothing step | 5, 6, 7, 8 |
+| `trg_audit_balance` | Trigger on `accounts` | Writes the old and new balance to `audit_log` whenever a balance changes | 11 |
+| `trg_no_delete_transactions` | Trigger on `transactions` | Refuses any DELETE, so transactions can only be marked REVERSED | 10 |
+
+A function is a saved piece of SQL that can be called by name. A trigger is a
+rule that runs automatically when a table is changed.
+
+### How transfer_funds() works
+1. It rejects an amount that is zero or negative, and a transfer to the same
+   account.
+2. It looks up both accounts and rejects the transfer if one does not exist.
+3. It locks both accounts with `FOR UPDATE`, always in the same order (lowest
+   account id first). This uses the locking idea from Part 2 and stops two
+   transfers between the same accounts from blocking each other forever
+   (a deadlock).
+4. It checks that both accounts are ACTIVE and that the sender has enough
+   money.
+5. If a check fails, it saves the transfer as FAILED, leaves both balances
+   unchanged and returns a message explaining why.
+6. If everything passes, it debits the sender, credits the receiver and records
+   the transfer as SUCCESS. The audit trigger logs both balance changes.
+
+### Test results
+| Test | Call | Result |
+|---|---|---|
+| 1 | Transfer 30,000 | `SUCCESS`. Balances 70,000 and 80,000 |
+| 2 | Transfer 500,000 (sender has 70,000) | `FAILED: insufficient funds`. Balances unchanged |
+| 3 | Transfer 1,000 to a FROZEN account | `FAILED: receiver account is not active` |
+| 4 | Transfer -50 | `FAILED: amount must be above zero`. Nothing recorded |
+| 5 | Delete a transaction | `ERROR: Transactions cannot be deleted. Mark them as REVERSED instead.` |
+
+The transactions table showed the FAILED attempts from tests 2 and 3 and the
+SUCCESS from test 1. The negative amount from test 4 was not recorded, because
+the function returns before reaching the insert. The audit log showed the
+balance changes from the successful transfer (100,000 to 70,000 for the sender
+and 50,000 to 80,000 for the receiver).
+
+![Transfer demo output](transfer-demo-output.png)
+
+### Why this is better than the earlier demo
+In Demonstration 2, the transfer only failed because the `CHECK (balance >= 0)`
+rule caught it after the receiver had already been credited, so it needed a
+manual ROLLBACK. With `transfer_funds()`, the checks run first, so a failing
+transfer never changes a balance, and the reason is recorded.
+
+### Business rules covered
+| Rule | How it is met |
+|---|---|
+| 5: amount above zero | CHECK on the table, and the function rejects it earlier |
+| 6: only active accounts | Status checked in `transfer_funds()` |
+| 7: all or nothing | Debit, credit and record in one function call, which runs as one transaction |
+| 8: failure leaves balances unchanged | Checks run before any update |
+| 10: no deleting transactions | `trg_no_delete_transactions` |
+| 11: balance changes logged | `trg_audit_balance` |
 
 ## Limitations
-- The failed transfer in Demonstration 2 was caught by the CHECK rule on
-  the balance. A real transfer procedure should also check that both accounts
-  are ACTIVE and that the sender has enough money before changing anything.
-- These demonstrations do not yet write to the `audit_log` table, so business
-  rule 11 is not enforced yet.
-- Running `samypaycommit-rollback.sql` again gives different starting balances,
-  because the successful transfer is saved permanently each time.
+- ## Limitations
+- The delete trigger does not stop `TRUNCATE` or someone dropping the trigger.
+  A real system would also restrict who has permission to do this.
+- A FAILED record is saved as part of the caller's transaction. If the caller
+  rolls back, the FAILED record is rolled back too.
+- Nothing sets a transaction's status to REVERSED yet, so reversals are not
+  implemented. This is future work.
+- `transfer_funds()` was tested in one session at a time. The locking from
+  Part 2 should protect it under concurrent use, but I did not run a
+  concurrent test on it.
+- Running the demo scripts again changes the demo account balances and adds
+  rows to `transactions` and `audit_log`.
 
   ## Concurrency and isolation
 
@@ -166,9 +234,11 @@ decisions from them, as long as the application retries after an error.
   account could slow users down.
 - In a real SamyPay system, the application would lock the sender's account at
   the start of every transfer.
+
 ## Files in this folder
-- `samypaysetup.sql`: creates the demo customers and accounts
-- `samypaycommit-rollback.sql`: the three demonstrations
-- `commit-rollback-output.txt`: the output of the demonstrations
+- `setup.sql`: creates the demo customers and accounts
+- `commit-rollback.sql` and `commit-rollback-output.txt`: commit and rollback demonstrations
+- `concurrency-demo.sql`: the steps typed into two terminals for the concurrency demonstrations
+- `procedures.sql`: the transfer function and the two triggers
+- `transfer-demo.sql` and `transfer-demo-output.txt`: tests of the function and triggers
 - `README.md`: this document
-- [more files will be listed as they are added]
