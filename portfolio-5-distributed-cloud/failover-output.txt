@@ -1,0 +1,33 @@
+=== 1. Roles before the failure ===
+localhost:27018  PRIMARY
+localhost:27019  SECONDARY
+localhost:27020  SECONDARY
+Current primary: localhost:27018
+=== 2. Stopping the primary on port 27018 (simulating a server failure) ===
+Primary stopped. Waiting 20 seconds for the other nodes to elect a new primary...
+=== 3. Roles after the failure (the stopped node shows as not reachable) ===
+localhost:27018  (not reachable/healthy)
+localhost:27019  PRIMARY
+localhost:27020  SECONDARY
+=== 4. Writing a new account while one node is down ===
+Insert acknowledged: true
+=== 5. Restarting the stopped node ===
+Node on port 27018 restarted
+Waiting 15 seconds for it to catch up...
+=== 6. Roles after the restart ===
+localhost:27018  SECONDARY
+localhost:27019  PRIMARY
+localhost:27020  SECONDARY
+=== 7. Does the restarted node (port 27018) hold both accounts? ===
+{
+  accountNumber: '5000000001',
+  owner: 'Demo Customer',
+  balance: Decimal128('100000.00'),
+  status: 'ACTIVE'
+}
+{
+  accountNumber: '5000000002',
+  owner: 'Written During Failover',
+  balance: Decimal128('55000.00'),
+  status: 'ACTIVE'
+}
