@@ -1,0 +1,28 @@
+=== 1. Write one account to the PRIMARY (port 27018) ===
+Insert acknowledged: true
+=== Reading from the node on port 27018 ===
+Role: PRIMARY
+{
+  accountNumber: '5000000001',
+  owner: 'Demo Customer',
+  balance: Decimal128('100000.00'),
+  status: 'ACTIVE'
+}
+=== Reading from the node on port 27019 ===
+Role: SECONDARY
+{
+  accountNumber: '5000000001',
+  owner: 'Demo Customer',
+  balance: Decimal128('100000.00'),
+  status: 'ACTIVE'
+}
+=== Reading from the node on port 27020 ===
+Role: SECONDARY
+{
+  accountNumber: '5000000001',
+  owner: 'Demo Customer',
+  balance: Decimal128('100000.00'),
+  status: 'ACTIVE'
+}
+=== Trying to WRITE to a SECONDARY (port 27019): should be refused ===
+Refused as expected: not primary
